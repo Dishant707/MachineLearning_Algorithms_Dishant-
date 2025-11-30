@@ -28,7 +28,6 @@ import sys
 import json
 import base64
 import getpass
-import hashlib
 from pathlib import Path
 from typing import Optional, Dict, List
 
@@ -436,7 +435,7 @@ def main():
     print("   Welcome to the Email & Password Manager Agent")
     print("=" * 50)
     print("\nThis tool securely manages your email accounts and passwords.")
-    print("All data is encrypted using AES-256 encryption.\n")
+    print("All data is encrypted using AES-128-CBC encryption.\n")
     
     manager = EmailPasswordManager()
     
