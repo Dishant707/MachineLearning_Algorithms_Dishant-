@@ -97,8 +97,9 @@ This repository also includes a secure **Email & Password Manager Agent** (`emai
 ### Features
 - **Secure Encryption**: Uses Fernet (AES-128-CBC) symmetric encryption from the cryptography library
 - **Master Password Protection**: Key derivation using PBKDF2 with 480,000 iterations
+- **Quick Access Aliases**: Save credentials with short aliases like "twitter" or "grok email" for quick retrieval
 - **CRUD Operations**: Add, view, update, and delete email/password entries
-- **Search Functionality**: Search credentials by email, service, or notes
+- **Search Functionality**: Search credentials by email, service, alias, or notes
 - **Password Generator**: Generate secure random passwords with customizable length
 - **Export Functionality**: Export credentials to JSON format
 
@@ -110,6 +111,21 @@ pip install cryptography
 ### Usage
 ```bash
 python email_password_manager.py
+```
+
+### Quick Access with Aliases
+You can save your email and password with a simple keyword or phrase (alias) for quick retrieval:
+```
+# When adding a credential, set an alias:
+Email address: user@gmail.com
+Service name: Gmail
+Password: ********
+Quick access alias: grok email
+
+# Later, quickly retrieve it using the alias:
+Select option 3 (Quick view by alias)
+Alias: grok email
+✓ Found credential for alias 'grok email'
 ```
 
 ### Example Session
@@ -125,14 +141,15 @@ Please create a master password (min 8 characters).
        Email & Password Manager Agent
 ==================================================
 1. Add new credential
-2. View credential
-3. View all credentials
-4. Update credential
-5. Delete credential
-6. Search credentials
-7. Generate secure password
-8. Export credentials
-9. Exit
+2. View credential (by email)
+3. Quick view by alias (e.g., 'twitter', 'grok email')
+4. View all credentials
+5. Update credential
+6. Delete credential
+7. Search credentials
+8. Generate secure password
+9. Export credentials
+10. Exit
 ==================================================
 ```
 

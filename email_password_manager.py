@@ -164,7 +164,8 @@ class EmailPasswordManager:
     
     def add_credential(self, email: str, password: str, 
                        service: Optional[str] = None,
-                       notes: Optional[str] = None) -> bool:
+                       notes: Optional[str] = None,
+                       alias: Optional[str] = None) -> bool:
         """
         Add a new email/password credential.
         
@@ -173,6 +174,8 @@ class EmailPasswordManager:
             password: The password for this account
             service: Optional service name (e.g., "Gmail", "Facebook")
             notes: Optional notes about this credential
+            alias: Optional short alias to quickly retrieve this credential
+                   (e.g., "grok email", "twitter", "work gmail")
             
         Returns:
             True if credential was added successfully, False if it already exists
@@ -189,15 +192,26 @@ class EmailPasswordManager:
             print("Use 'update' to modify existing credentials.")
             return False
         
+        # Check if alias already exists
+        if alias:
+            for existing_key, cred in self.credentials.items():
+                if cred.get("alias", "").lower() == alias.lower():
+                    print(f"Error: Alias '{alias}' is already used by another credential.")
+                    return False
+        
         self.credentials[key] = {
             "email": email,
             "password": password,
             "service": service or "",
-            "notes": notes or ""
+            "notes": notes or "",
+            "alias": alias or ""
         }
         
         self._save_credentials()
-        print(f"Credential for '{email}' added successfully.")
+        if alias:
+            print(f"Credential for '{email}' added successfully with alias '{alias}'.")
+        else:
+            print(f"Credential for '{email}' added successfully.")
         return True
     
     def get_credential(self, email: str, service: Optional[str] = None) -> Optional[Dict[str, str]]:
@@ -218,10 +232,34 @@ class EmailPasswordManager:
         key = f"{email}:{service or 'default'}"
         return self.credentials.get(key)
     
+    def get_credential_by_alias(self, alias: str) -> Optional[Dict[str, str]]:
+        """
+        Retrieve a credential by its alias.
+        
+        This allows quick access to credentials using a simple keyword or phrase
+        like "grok email", "twitter", "work gmail", etc.
+        
+        Args:
+            alias: The alias to search for (case-insensitive)
+            
+        Returns:
+            The credential dictionary if found, None otherwise
+        """
+        if not self.fernet:
+            print("Error: Manager not initialized.")
+            return None
+            
+        alias_lower = alias.lower()
+        for key, cred in self.credentials.items():
+            if cred.get("alias", "").lower() == alias_lower:
+                return cred
+        return None
+    
     def update_credential(self, email: str, 
                           new_password: Optional[str] = None,
                           service: Optional[str] = None,
-                          new_notes: Optional[str] = None) -> bool:
+                          new_notes: Optional[str] = None,
+                          new_alias: Optional[str] = None) -> bool:
         """
         Update an existing credential.
         
@@ -230,6 +268,7 @@ class EmailPasswordManager:
             new_password: New password (if None, password remains unchanged)
             service: Service name to identify the credential
             new_notes: New notes (if None, notes remain unchanged)
+            new_alias: New alias (if None, alias remains unchanged)
             
         Returns:
             True if credential was updated, False if not found
@@ -248,6 +287,16 @@ class EmailPasswordManager:
             self.credentials[key]["password"] = new_password
         if new_notes is not None:
             self.credentials[key]["notes"] = new_notes
+        if new_alias is not None and new_alias.strip():
+            # Check if the new alias is already used by another credential
+            for existing_key, cred in self.credentials.items():
+                if existing_key != key and cred.get("alias", "").lower() == new_alias.lower():
+                    print(f"Error: Alias '{new_alias}' is already used by another credential.")
+                    return False
+            self.credentials[key]["alias"] = new_alias
+        elif new_alias == "":
+            # Allow explicitly clearing the alias
+            self.credentials[key]["alias"] = ""
             
         self._save_credentials()
         print(f"Credential for '{email}' updated successfully.")
@@ -296,13 +345,14 @@ class EmailPasswordManager:
                 "email": cred["email"],
                 "service": cred["service"] or "default",
                 "password": "*" * 8,  # Mask password
-                "notes": cred["notes"]
+                "notes": cred["notes"],
+                "alias": cred.get("alias", "")
             })
         return result
     
     def search_credentials(self, query: str) -> List[Dict[str, str]]:
         """
-        Search credentials by email or service name.
+        Search credentials by email, service name, or alias.
         
         Args:
             query: Search string (case-insensitive)
@@ -320,12 +370,14 @@ class EmailPasswordManager:
         for key, cred in self.credentials.items():
             if (query_lower in cred["email"].lower() or 
                 query_lower in cred["service"].lower() or
-                query_lower in cred["notes"].lower()):
+                query_lower in cred["notes"].lower() or
+                query_lower in cred.get("alias", "").lower()):
                 result.append({
                     "email": cred["email"],
                     "service": cred["service"] or "default",
                     "password": "*" * 8,
-                    "notes": cred["notes"]
+                    "notes": cred["notes"],
+                    "alias": cred.get("alias", "")
                 })
         return result
     
@@ -389,7 +441,8 @@ class EmailPasswordManager:
             export_entry = {
                 "email": cred["email"],
                 "service": cred["service"] or "default",
-                "notes": cred["notes"]
+                "notes": cred["notes"],
+                "alias": cred.get("alias", "")
             }
             if include_passwords:
                 export_entry["password"] = cred["password"]
@@ -410,14 +463,15 @@ def print_menu():
     print("       Email & Password Manager Agent")
     print("=" * 50)
     print("1. Add new credential")
-    print("2. View credential")
-    print("3. View all credentials")
-    print("4. Update credential")
-    print("5. Delete credential")
-    print("6. Search credentials")
-    print("7. Generate secure password")
-    print("8. Export credentials")
-    print("9. Exit")
+    print("2. View credential (by email)")
+    print("3. Quick view by alias (e.g., 'twitter', 'grok email')")
+    print("4. View all credentials")
+    print("5. Update credential")
+    print("6. Delete credential")
+    print("7. Search credentials")
+    print("8. Generate secure password")
+    print("9. Export credentials")
+    print("10. Exit")
     print("=" * 50)
 
 
@@ -461,7 +515,7 @@ def main():
     
     while True:
         print_menu()
-        choice = input("Select an option (1-9): ").strip()
+        choice = input("Select an option (1-10): ").strip()
         
         if choice == "1":
             # Add new credential
@@ -477,12 +531,13 @@ def main():
                 password = get_password_input("Password: ")
                 
             notes = input("Notes [optional]: ").strip()
+            alias = input("Quick access alias (e.g., 'twitter', 'grok email') [optional]: ").strip()
             
-            manager.add_credential(email, password, service or None, notes or None)
+            manager.add_credential(email, password, service or None, notes or None, alias or None)
             
         elif choice == "2":
-            # View credential
-            print("\n--- View Credential ---")
+            # View credential by email
+            print("\n--- View Credential by Email ---")
             email = input("Email address: ").strip()
             service = input("Service name [optional]: ").strip()
             
@@ -490,6 +545,7 @@ def main():
             if cred:
                 print(f"\nEmail: {cred['email']}")
                 print(f"Service: {cred['service'] or 'default'}")
+                print(f"Alias: {cred.get('alias', '') or '(none)'}")
                 show_pass = input("Show password? (y/n): ").strip().lower()
                 if show_pass == "y":
                     print(f"Password: {cred['password']}")
@@ -500,6 +556,26 @@ def main():
                 print("Credential not found.")
                 
         elif choice == "3":
+            # Quick view by alias
+            print("\n--- Quick View by Alias ---")
+            print("Enter your alias (e.g., 'twitter', 'grok email', 'work gmail'):")
+            alias = input("Alias: ").strip()
+            
+            cred = manager.get_credential_by_alias(alias)
+            if cred:
+                print(f"\n✓ Found credential for alias '{alias}':")
+                print(f"Email: {cred['email']}")
+                print(f"Service: {cred['service'] or 'default'}")
+                show_pass = input("Show password? (y/n): ").strip().lower()
+                if show_pass == "y":
+                    print(f"Password: {cred['password']}")
+                else:
+                    print("Password: ********")
+                print(f"Notes: {cred['notes']}")
+            else:
+                print(f"No credential found with alias '{alias}'.")
+                
+        elif choice == "4":
             # View all credentials
             print("\n--- All Credentials ---")
             all_creds = manager.list_all_credentials()
@@ -507,11 +583,12 @@ def main():
                 for i, cred in enumerate(all_creds, 1):
                     print(f"\n{i}. Email: {cred['email']}")
                     print(f"   Service: {cred['service']}")
+                    print(f"   Alias: {cred.get('alias', '') or '(none)'}")
                     print(f"   Notes: {cred['notes']}")
             else:
                 print("No credentials stored yet.")
                 
-        elif choice == "4":
+        elif choice == "5":
             # Update credential
             print("\n--- Update Credential ---")
             email = input("Email address: ").strip()
@@ -520,19 +597,22 @@ def main():
             cred = manager.get_credential(email, service or None)
             if cred:
                 print(f"\nCurrent credential for: {email}")
+                print(f"Current alias: {cred.get('alias', '') or '(none)'}")
                 new_password = get_password_input("New password (leave blank to keep current): ")
                 new_notes = input("New notes (leave blank to keep current): ").strip()
+                new_alias = input("New alias (leave blank to keep current): ").strip()
                 
                 manager.update_credential(
                     email,
                     new_password if new_password else None,
                     service or None,
-                    new_notes if new_notes else None
+                    new_notes if new_notes else None,
+                    new_alias if new_alias else None
                 )
             else:
                 print("Credential not found.")
                 
-        elif choice == "5":
+        elif choice == "6":
             # Delete credential
             print("\n--- Delete Credential ---")
             email = input("Email address: ").strip()
@@ -544,9 +624,10 @@ def main():
             else:
                 print("Deletion cancelled.")
                 
-        elif choice == "6":
+        elif choice == "7":
             # Search credentials
             print("\n--- Search Credentials ---")
+            print("Search by email, service, alias, or notes:")
             query = input("Search query: ").strip()
             results = manager.search_credentials(query)
             
@@ -555,11 +636,12 @@ def main():
                 for i, cred in enumerate(results, 1):
                     print(f"\n{i}. Email: {cred['email']}")
                     print(f"   Service: {cred['service']}")
+                    print(f"   Alias: {cred.get('alias', '') or '(none)'}")
                     print(f"   Notes: {cred['notes']}")
             else:
                 print("No matching credentials found.")
                 
-        elif choice == "7":
+        elif choice == "8":
             # Generate password
             print("\n--- Generate Secure Password ---")
             length_input = input("Password length (8-64) [default: 16]: ").strip()
@@ -572,7 +654,7 @@ def main():
             password = manager.generate_password(length)
             print(f"\nGenerated Password: {password}")
             
-        elif choice == "8":
+        elif choice == "9":
             # Export credentials
             print("\n--- Export Credentials ---")
             output_file = input("Output file path [default: exported_credentials.json]: ").strip()
@@ -581,14 +663,14 @@ def main():
             include_pass = input("Include passwords in export? (yes/no): ").strip().lower()
             manager.export_credentials(output_file, include_pass == "yes")
             
-        elif choice == "9":
+        elif choice == "10":
             # Exit
             print("\nThank you for using Email & Password Manager Agent!")
             print("Your data has been securely saved. Goodbye!")
             break
             
         else:
-            print("Invalid option. Please select 1-9.")
+            print("Invalid option. Please select 1-10.")
 
 
 if __name__ == "__main__":
