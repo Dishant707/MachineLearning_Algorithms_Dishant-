@@ -90,6 +90,60 @@ Similar outputs are generated for other scripts, including accuracy, confusion m
 
 ---
 
+## 🔐 Email & Password Manager Agent
+
+This repository also includes a secure **Email & Password Manager Agent** (`email_password_manager.py`) - a command-line tool for securely managing your email accounts and passwords.
+
+### Features
+- **Secure Encryption**: Uses Fernet (AES-128-CBC) symmetric encryption from the cryptography library
+- **Master Password Protection**: Key derivation using PBKDF2 with 480,000 iterations
+- **CRUD Operations**: Add, view, update, and delete email/password entries
+- **Search Functionality**: Search credentials by email, service, or notes
+- **Password Generator**: Generate secure random passwords with customizable length
+- **Export Functionality**: Export credentials to JSON format
+
+### Prerequisites
+```bash
+pip install cryptography
+```
+
+### Usage
+```bash
+python email_password_manager.py
+```
+
+### Example Session
+```
+Welcome to the Email & Password Manager Agent
+=============================================
+No existing vault found. Let's create a new one.
+Please create a master password (min 8 characters).
+
+✓ Vault unlocked successfully!
+
+==================================================
+       Email & Password Manager Agent
+==================================================
+1. Add new credential
+2. View credential
+3. View all credentials
+4. Update credential
+5. Delete credential
+6. Search credentials
+7. Generate secure password
+8. Export credentials
+9. Exit
+==================================================
+```
+
+### Security Notes
+- All credentials are encrypted using AES-128-CBC (Fernet)
+- Master password is never stored; only used to derive the encryption key
+- Uses PBKDF2 with SHA-256 and 480,000 iterations for key derivation
+- Salt is randomly generated and stored separately
+
+---
+
 ## 🙌 Contributing
 Feel free to fork this repository, experiment with the code, or suggest improvements via pull requests. Issues and feedback are welcome!
 
