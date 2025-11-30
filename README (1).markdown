@@ -90,6 +90,77 @@ Similar outputs are generated for other scripts, including accuracy, confusion m
 
 ---
 
+## 🔐 Email & Password Manager Agent
+
+This repository also includes a secure **Email & Password Manager Agent** (`email_password_manager.py`) - a command-line tool for securely managing your email accounts and passwords.
+
+### Features
+- **Secure Encryption**: Uses Fernet (AES-128-CBC) symmetric encryption from the cryptography library
+- **Master Password Protection**: Key derivation using PBKDF2 with 480,000 iterations
+- **Quick Access Aliases**: Save credentials with short aliases like "twitter" or "grok email" for quick retrieval
+- **CRUD Operations**: Add, view, update, and delete email/password entries
+- **Search Functionality**: Search credentials by email, service, alias, or notes
+- **Password Generator**: Generate secure random passwords with customizable length
+- **Export Functionality**: Export credentials to JSON format
+
+### Prerequisites
+```bash
+pip install cryptography
+```
+
+### Usage
+```bash
+python email_password_manager.py
+```
+
+### Quick Access with Aliases
+You can save your email and password with a simple keyword or phrase (alias) for quick retrieval:
+```
+# When adding a credential, set an alias:
+Email address: user@gmail.com
+Service name: Gmail
+Password: ********
+Quick access alias: grok email
+
+# Later, quickly retrieve it using the alias:
+Select option 3 (Quick view by alias)
+Alias: grok email
+✓ Found credential for alias 'grok email'
+```
+
+### Example Session
+```
+Welcome to the Email & Password Manager Agent
+=============================================
+No existing vault found. Let's create a new one.
+Please create a master password (min 8 characters).
+
+✓ Vault unlocked successfully!
+
+==================================================
+       Email & Password Manager Agent
+==================================================
+1. Add new credential
+2. View credential (by email)
+3. Quick view by alias (e.g., 'twitter', 'grok email')
+4. View all credentials
+5. Update credential
+6. Delete credential
+7. Search credentials
+8. Generate secure password
+9. Export credentials
+10. Exit
+==================================================
+```
+
+### Security Notes
+- All credentials are encrypted using AES-128-CBC (Fernet)
+- Master password is never stored; only used to derive the encryption key
+- Uses PBKDF2 with SHA-256 and 480,000 iterations for key derivation
+- Salt is randomly generated and stored separately
+
+---
+
 ## 🙌 Contributing
 Feel free to fork this repository, experiment with the code, or suggest improvements via pull requests. Issues and feedback are welcome!
 
